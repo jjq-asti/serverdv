@@ -7,7 +7,7 @@ const cors = require('cors');
 
 const app = express();
 console.log(__dirname)
-//app.use(serveStatic(__dirname + "/dist"))
+app.use(serveStatic(__dirname + "/dist"))
 let datastring = "";
 var whitelist = [
     'http://localhost:3001',

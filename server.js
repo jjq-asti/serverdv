@@ -26,7 +26,7 @@ app.use(cors(corsOptions));
 app.get('/',(req,res)=>{
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Credentials', 'false');
-    res.sendFile("../index.html")
+    res.sendFile("/home/jeanjayquitayen/spectrummonitoring/index.html")
     });
 
 app.get('/select',(req,res)=>{

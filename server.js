@@ -26,7 +26,24 @@ app.use(cors(corsOptions));
 app.get('/',(req,res)=>{
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Credentials', 'false');
-    res.sendFile("/home/jeanjayquitayen/spectrummonitoring/index.html")
+    datastring = '';
+    let py = spawn('python3',[path.join(__dirname+'/csv_parser.py')]);
+    let r = {
+        "req": "update",
+    }
+    py.stdin.write(JSON.stringify(r));
+    py.stdin.end();
+    py.stderr.on('data', function (data){
+    datastring += data.toString();
+    });
+    py.stdout.on('data', (data)=>{
+        datastring += data.toString();
+          });
+    py.stdout.on('end', ()=>{
+        res.send(datastring);
+        datastring = '';
+    });
+
     });
 
 app.get('/select',(req,res)=>{

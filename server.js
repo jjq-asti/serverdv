@@ -3,7 +3,6 @@ const path = require('path');
 const consola = require('consola');
 const spawn = require('child_process').spawn;
 const cors = require('cors');
-const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 

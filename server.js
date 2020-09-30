@@ -7,14 +7,14 @@ const cors = require('cors');
 
 const app = express();
 console.log(__dirname)
-app.use(serveStatic(__dirname + "/dist"))
+//app.use(serveStatic(__dirname + "/dist"))
 let datastring = "";
 var whitelist = [
     'http://localhost:3001',
     'http://localhost:8080',
     'http://192.168.91.20'
 ];
-//app.use(express.static(path.join(__dirname +'/files')));
+app.use(express.static(path.join(__dirname +'/dist')));
 var corsOptions = {
   origin: function(origin, callback){
       var originIsWhitelisted = whitelist.indexOf(origin) !== -1;

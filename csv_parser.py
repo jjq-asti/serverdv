@@ -71,24 +71,24 @@ def getData(group):
     
 def loopData():
     try:
-        with h5py.File('data.hdf5','r') as h5file:
+        with h5py.File('/home/wrt/server/data.hdf5','r') as h5file:
             h5file.visit(getData)
     except IOError as e:
         print(e)
 
 def readDF(group):
     try:
-        with h5py.File('data.hdf5','r') as h5file:
+        with h5py.File('/home/wrt/server/data.hdf5','r') as h5file:
             group = h5file[group]
             step = group.attrs['step']
             step = float(step)
-            base_freq = group.attrs['base_freq']
+            step = round(step,2)
+            base_freq = float(group.attrs['base_freq'])
             np_arr = group.get('DATA')[()]
             index_freq = np.arange(base_freq,base_freq + (step * len(np_arr) ),step)
-            #index_freq = np.arange(base_freq,base_freq + (step * len(np_arr) ),step)
-            #print(base_freq,len(np_arr),step,len(index_freq))
+            index_freq = index_freq
             df = pd.DataFrame(np_arr,index=index_freq)
-            df.to_csv(sys.stdout,header=['Power'])
+            df.to_csv(sys.stdout,header=['Power'],index_label="Frequency",float_format="%.2f")
                     
     except IOError as e:
         print(e)
@@ -126,8 +126,6 @@ def getPathByDate(dataset,date, hour):
 
 
 if __name__ == "__main__":
-#    parseData("Data_05-27_09_29_57.csv")
-#    group = sys.argv[1]
     req = sys.stdin.readlines()
     req = req[0]
     serverdata = json.loads(req)
@@ -140,33 +138,33 @@ if __name__ == "__main__":
         files_from_date = getPathByDate(data,last[1])
         print(",".join(files_from_date))
     if serverdata["req"] == "update":
-        loopData()
-        date = serverdata["date"].strip()
-        date = datetime.strptime(date,"%Y/%m/%d")
-        #date = date.strftime("%Y-%m-%d")
-        hour = serverdata["hour"].strip()
-
-        files_from_date = getPathByDate(data,date,hour)
-        path_length = len(files_from_date)
-        if path_length > 0:
-            if path_length == 1: 
-                print(files_from_date[0])
+        try:
+            loopData()
+            date = serverdata["date"].strip()
+            date = datetime.strptime(date,"%Y-%m-%d")
+            #date = date.strftime("%Y-%m-%d")
+            hour = serverdata["hour"].strip()
+            files_from_date = getPathByDate(data,date,hour)
+            path_length = len(files_from_date)
+            if path_length > 0:
+                if path_length == 1: 
+                    print(files_from_date[0])
+                else:
+                    print(",".join(files_from_date))
             else:
-                print(",".join(files_from_date))
-        else:
+                print(0)
+        except:
             print(0)
 
     if serverdata["req"] == "select":
         try:
             time = serverdata["time"].strip()
             date = serverdata["date"].strip()
-            date = datetime.strptime(date,"%Y/%m/%d")
-            date = date.strftime("%Y-%m-%d")
             loc = "NRTDC"
             full_path = os.path.join(loc,date,time)
             readDF(full_path)
         except:
-            pass
+            print(0)
 
 
         

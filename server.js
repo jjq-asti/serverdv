@@ -1,52 +1,82 @@
+"use strict";
 const express = require('express');
 const path = require('path');
 var serveStatic = require('serve-static');
 const consola = require('consola');
 const spawn = require('child_process').spawn;
 const cors = require('cors');
+const DB = require('./db');
+const config = require('./config');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
 
+const db = new DB("sqlitedb")
 const app = express();
-console.log(__dirname)
-//app.use(serveStatic(__dirname + "/dist"))
+const router = express.Router();
+
+router.use(bodyParser.urlencoded({ extended: false }));
+router.use(bodyParser.json())
+
 let datastring = "";
-var whitelist = [
-    'http://localhost:3001',
-    'http://localhost:8080',
-    'http://192.168.91.20'
-];
-app.use(express.static(path.join(__dirname +'/dist')));
-var corsOptions = {
-  origin: function(origin, callback){
-      var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
-      callback(null, originIsWhitelisted);
-  },
-  credentials: true
-};
 
-app.use(cors(corsOptions));
+const allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', '*');
+    res.header('Access-Control-Allow-Headers', '*');
+    next();
+}
 
-//app.get('/',(req,res)=>{
-//    res.set('Access-Control-Allow-Origin', '*');
-//    res.set('Access-Control-Allow-Credentials', 'false');
-//    datastring = '';
-//    let py = spawn('python3',[path.join(__dirname+'/csv_parser.py')]);
-//    let r = {
-//        "req": "update",
-//    }
-//    py.stdin.write(JSON.stringify(r));
-//    py.stdin.end();
-//    py.stderr.on('data', function (data){
-//    datastring += data.toString();
-//    });
-//    py.stdout.on('data', (data)=>{
-//        datastring += data.toString();
-//          });
-//    py.stdout.on('end', ()=>{
-//        res.send(datastring);
-//        datastring = '';
-//    });
-//
-//    });
+app.use(allowCrossDomain)
+
+router.post('/register', function(req, res) {
+    console.log(req.body.name)
+    db.insert([
+        req.body.name,
+        req.body.email,
+        bcrypt.hashSync(req.body.password, 8)
+    ],
+    function (err) {
+        if (err) return res.status(500).send("There was a problem registering the user.")
+        db.selectByEmail(req.body.email, (err,user) => {
+            if (err) return res.status(500).send("There was a problem getting user")
+            let token = jwt.sign({ id: user.id }, config.secret, {expiresIn: 86400 // expires in 24 hours
+            });
+            res.status(200).send({ auth: true, token: token, user: user });
+        });
+    });
+});
+
+router.post('/register-admin', function(req, res) {
+    db.insertAdmin([
+        req.body.name,
+        req.body.email,
+        bcrypt.hashSync(req.body.password, 8),
+    ],
+    function (err) {
+        if (err) return res.status(500).send("There was a problem registering the user.")
+        db.selectByEmail(req.body.email, (err,user) => {
+            if (err) return res.status(500).send("There was a problem getting user")
+            let token = jwt.sign({ id: user.id }, config.secret, { expiresIn: 86400 // expires in 24 hours
+            });
+            res.status(200).send({ auth: true, token: token, user: user });
+        });
+    });
+});
+
+router.post('/login', (req, res) => {
+    db.selectByEmail(req.body.email, (err, user) => {
+        if (err) return res.status(500).send('Error on the server.');
+        if (!user) return res.status(404).send('No user found.');
+        let passwordIsValid = bcrypt.compareSync(req.body.password, user.user_pass);
+        if (!passwordIsValid) return res.status(401).send({ auth: false, token: null });
+        let token = jwt.sign({ id: user.id }, config.secret, { expiresIn: 86400 // expires in 24 hours
+        });
+        res.status(200).send({ auth: true, token: token, user: user });
+    });
+})
+
+
 app.get('/files',(req,res)=>{
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Credentials', 'false');
@@ -91,7 +121,8 @@ app.get('/select',(req,res)=>{
           });
     py.stdout.on('end', ()=>{
         console.log(datastring)
-        res.send(datastring);
+        //res.send(datastring.match(/-?\d+(?:\.\d+)?/g).map(Number));
+        res.send(datastring)
         datastring = '';
     });
 });
@@ -123,8 +154,8 @@ app.get('/update',(req,res)=>{
     });
 
 async function start () {
-  const port = 3001;
-
+  app.use(router)
+  const port = 3000;
   // Listen the server
   app.listen(port)
   consola.ready({

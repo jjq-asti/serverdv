@@ -5,13 +5,13 @@ var serveStatic = require('serve-static');
 const consola = require('consola');
 const spawn = require('child_process').spawn;
 const cors = require('cors');
-const DB = require('./db');
-const config = require('./config');
+const DB = require('/home/wrt/server/db');
+const config = require('/home/wrt/server/config');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 
-const db = new DB("sqlitedb")
+const db = new DB("/home/wrt/server/sqlitedb")
 const app = express();
 const router = express.Router();
 
@@ -30,11 +30,11 @@ const allowCrossDomain = function(req, res, next) {
 app.use(allowCrossDomain)
 
 router.post('/register', function(req, res) {
-    console.log(req.body.name)
     db.insert([
         req.body.name,
         req.body.email,
-        bcrypt.hashSync(req.body.password, 8)
+        bcrypt.hashSync(req.body.password, 8),
+        req.body.is_admin
     ],
     function (err) {
         if (err) return res.status(500).send("There was a problem registering the user.")
@@ -48,10 +48,12 @@ router.post('/register', function(req, res) {
 });
 
 router.post('/register-admin', function(req, res) {
+    console.log(req.body.is_admin)
     db.insertAdmin([
         req.body.name,
         req.body.email,
         bcrypt.hashSync(req.body.password, 8),
+        req.body.is_admin
     ],
     function (err) {
         if (err) return res.status(500).send("There was a problem registering the user.")
@@ -65,7 +67,7 @@ router.post('/register-admin', function(req, res) {
 });
 
 router.post('/login', (req, res) => {
-    db.selectByEmail(req.body.email, (err, user) => {
+    db.selectByEmail(req.body.name, (err, user) => {
         if (err) return res.status(500).send('Error on the server.');
         if (!user) return res.status(404).send('No user found.');
         let passwordIsValid = bcrypt.compareSync(req.body.password, user.user_pass);
@@ -107,8 +109,11 @@ app.get('/select',(req,res)=>{
     let py = spawn('python3',[path.join(__dirname+'/csv_parser.py')]);
     let r = { 
         "req": "select",
+	"city": req.query.city 
         "time": req.query.time,
         "date": req.query.date,
+        "loc": req.query.loc,
+	"token": req.query.token,
     }
     console.log(r)
     py.stdin.write(JSON.stringify(r));
@@ -134,7 +139,8 @@ app.get('/update',(req,res)=>{
     let r = { 
         "req": "update",
         "date": req.query.date,
-        "hour": req.query.hour
+        "hour": req.query.hour,
+        "loc": req.query.loc,
     }
     console.log(r)
     py.stdin.write(JSON.stringify(r));
@@ -155,7 +161,7 @@ app.get('/update',(req,res)=>{
 
 async function start () {
   app.use(router)
-  const port = 3000;
+  const port = 5000;
   // Listen the server
   app.listen(port)
   consola.ready({

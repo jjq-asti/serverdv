@@ -65,6 +65,7 @@ def readData(group):
     except IOError as e:
         print(e)
 data = []
+
 def getData(group):
     if "DATA" in group:
         data.append(group)
@@ -77,7 +78,7 @@ def loopData():
         print(e)
 
 def readDF(group):
-    try:
+    try
         with h5py.File('/home/wrt/server/data.hdf5','r') as h5file:
             group = h5file[group]
             step = group.attrs['step']
@@ -93,33 +94,22 @@ def readDF(group):
     except IOError as e:
         print(e)
 
-def searchData(location,date,time):
-    #d = datetime.strptime("2020-05-27 09:29:57","%Y-%m-%d %H:%M:%S")
-    date_time = "{} {}".format(date,time)
-    record_location = location
-    record_datetime = datetime.strptime(date-time,"%Y-%m-%d %H:%M:%S")
 
-def searchByDate(date):
-    loc = "B2M_ASTI_Rooftop2"
-    search_path = os.path.join(loc,date)
-    try:
-        with h5py.File('data.hdf5','r') as h5file:
-            h5file.visit(getData)
-    except IOError as e:
-        print(e)
 
-def getPathByDate(dataset,date, hour):
+def getPathByDate(dataset,date, hour, loc):
     paths = []
     for path in dataset:
-        time =  path.split('/')[2]
+        base_path = path.split('/')
+        loc_file = base_path[0]
+        time =  base_path[2]
         time_file = datetime.strptime(time,'%H:%M:%S')
-        date_file = path.split('/')[1]
+        date_file = base_path[1]
         date_file = datetime.strptime(date_file,'%Y-%m-%d')
         try:
             hour = int(hour)
         except:
             pass
-        if date == date_file and time_file.hour ==  hour:
+        if date == date_file and time_file.hour ==  hour and loc == loc_file:
             paths.append(time[3:])
     return paths
 
@@ -130,7 +120,7 @@ if __name__ == "__main__":
     req = req[0]
     serverdata = json.loads(req)
     sites = []
-    if serverdata["req"] == "updateboot":
+    if serverdata["req"] == "updateboot": # first load of website
         loopData()
         last = data[len(data)-1]
         last = last.split("/")
@@ -142,9 +132,10 @@ if __name__ == "__main__":
             loopData()
             date = serverdata["date"].strip()
             date = datetime.strptime(date,"%Y-%m-%d")
+            loc =  serverdata["loc"].strip()
             #date = date.strftime("%Y-%m-%d")
             hour = serverdata["hour"].strip()
-            files_from_date = getPathByDate(data,date,hour)
+            files_from_date = getPathByDate(data,date,hour,loc)
             path_length = len(files_from_date)
             if path_length > 0:
                 if path_length == 1: 
@@ -160,7 +151,7 @@ if __name__ == "__main__":
         try:
             time = serverdata["time"].strip()
             date = serverdata["date"].strip()
-            loc = "NRTDC"
+            loc =  serverdata["loc"].strip()
             full_path = os.path.join(loc,date,time)
             readDF(full_path)
         except:

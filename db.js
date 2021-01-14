@@ -20,7 +20,7 @@ class Db {
 
     selectByEmail(email, callback) {
         return this.db.get(
-            `SELECT * FROM user WHERE email = ?`,
+            `SELECT * FROM user WHERE name = ?`,
             [email],function(err,row){
                 callback(err,row)
             })
@@ -42,7 +42,7 @@ class Db {
 
     insert(user, callback) {
         return this.db.run(
-            'INSERT INTO user (name,email,user_pass) VALUES (?,?,?)',
+            'INSERT INTO user (name,email,user_pass,is_admin) VALUES (?,?,?,?)',
             user, (err) => {
                 callback(err)
             })

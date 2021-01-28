@@ -1,4 +1,5 @@
 import csv
+import logging
 import numpy as np
 import pandas as pd
 import json
@@ -63,7 +64,8 @@ def readData(group):
             for attr in g.attrs:
                 print(g.attrs[attr])
     except IOError as e:
-        print(e)
+        logging.error(e)
+
 data = []
 
 def getData(group):
@@ -73,12 +75,19 @@ def getData(group):
 def loopData():
     try:
         with h5py.File('/home/wrt/server/data.hdf5','r') as h5file:
-            h5file.visit(getData)
+            #h5file.visit(getData)
+            groups = list(h5file.keys()) # STATION CROWDSOURCE
+            station_date_latest = list(h5file['STATION'].keys())[-1]
+            crowdsource_date_latest = list(h5file['CROWDSOURCE'].keys())[-1]
+            station_time_latest = list(h5file['STATION'][station_date_latest].keys())[-1]
+            crowdsource_time_latest = list(h5file['CROWDSOURCE'][crowdsource_date_latest].keys())[-1]
+
     except IOError as e:
-        print(e)
+        logging.error(e)
+        
 
 def readDF(group):
-    try
+    try:
         with h5py.File('/home/wrt/server/data.hdf5','r') as h5file:
             group = h5file[group]
             step = group.attrs['step']
@@ -92,8 +101,7 @@ def readDF(group):
             df.to_csv(sys.stdout,header=['Power'],index_label="Frequency",float_format="%.2f")
                     
     except IOError as e:
-        print(e)
-
+        logging.error(e)
 
 
 def getPathByDate(dataset,date, hour, loc):
@@ -116,6 +124,8 @@ def getPathByDate(dataset,date, hour, loc):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='runtime.log', format='%(asctime)s %(levelname)s %(threadName)-10s %(message)s', level=logging.DEBUG)
+    logging.info("main started")
     req = sys.stdin.readlines()
     req = req[0]
     serverdata = json.loads(req)

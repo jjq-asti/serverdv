@@ -109,7 +109,7 @@ app.get('/select',(req,res)=>{
     let py = spawn('python3',[path.join(__dirname+'/csv_parser.py')]);
     let r = { 
         "req": "select",
-	"city": req.query.city 
+	"city": req.query.city,
         "time": req.query.time,
         "date": req.query.date,
         "loc": req.query.loc,
